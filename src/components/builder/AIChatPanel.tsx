@@ -31,57 +31,198 @@ export function AIChatPanel({ onClose, onGenerate }: AIChatPanelProps) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  const parseUserIntent = (text: string): { components: UIComponent[]; response: string } => {
+    const lower = text.toLowerCase();
+    const components: UIComponent[] = [];
+    const matched: string[] = [];
+    let idCounter = 0;
+    const nextId = () => `ai-${Date.now()}-${++idCounter}`;
+
+    // --- Auth / Login / Registration ---
+    if (/log(owanie|in|uj)|zaloguj|sign\s?in|autoryzacj/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Tytuł logowania", props: { text: "Zaloguj się", size: "22" } },
+        { id: nextId(), type: "input", label: "Email", props: { placeholder: "Adres e-mail", type: "email" } },
+        { id: nextId(), type: "input", label: "Hasło", props: { placeholder: "Hasło", type: "password" } },
+        { id: nextId(), type: "button", label: "Zaloguj", props: { text: "Zaloguj się", color: "primary" } },
+      );
+      matched.push("ekran logowania");
+    }
+
+    if (/rejestracj|sign\s?up|zarejestruj|rejestruj|konto|załóż/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Tytuł rejestracji", props: { text: "Utwórz konto", size: "22" } },
+        { id: nextId(), type: "input", label: "Imię", props: { placeholder: "Twoje imię", type: "text" } },
+        { id: nextId(), type: "input", label: "Email", props: { placeholder: "Adres e-mail", type: "email" } },
+        { id: nextId(), type: "input", label: "Hasło", props: { placeholder: "Hasło", type: "password" } },
+        { id: nextId(), type: "input", label: "Powtórz hasło", props: { placeholder: "Powtórz hasło", type: "password" } },
+        { id: nextId(), type: "button", label: "Zarejestruj", props: { text: "Zarejestruj się", color: "primary" } },
+      );
+      matched.push("formularz rejestracji");
+    }
+
+    // --- Lists / Todo / Tasks ---
+    if (/lista|zadań|todo|task|zadania|notatk|notes/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Tytuł listy", props: { text: "Moje Zadania", size: "20" } },
+        { id: nextId(), type: "input", label: "Nowe zadanie", props: { placeholder: "Wpisz nowe zadanie..." } },
+        { id: nextId(), type: "button", label: "Dodaj", props: { text: "➕ Dodaj", color: "primary" } },
+        { id: nextId(), type: "checkbox", label: "Zadanie 1", props: { text: "Przykładowe zadanie 1" } },
+        { id: nextId(), type: "checkbox", label: "Zadanie 2", props: { text: "Przykładowe zadanie 2" } },
+        { id: nextId(), type: "checkbox", label: "Zadanie 3", props: { text: "Przykładowe zadanie 3" } },
+      );
+      matched.push("lista zadań z checkboxami");
+    }
+
+    // --- Profile / Settings ---
+    if (/profil|profile|ustawieni|settings|konto użytkownik/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "image", label: "Avatar", props: { text: "👤 Avatar" } },
+        { id: nextId(), type: "text", label: "Nazwa użytkownika", props: { text: "Jan Kowalski", size: "18" } },
+        { id: nextId(), type: "text", label: "Email", props: { text: "jan@email.com", size: "14" } },
+        { id: nextId(), type: "card", label: "Dane osobowe", props: { text: "Dane osobowe" } },
+        { id: nextId(), type: "switch", label: "Powiadomienia", props: { text: "Powiadomienia push" } },
+        { id: nextId(), type: "switch", label: "Tryb ciemny", props: { text: "Tryb ciemny" } },
+        { id: nextId(), type: "button", label: "Zapisz", props: { text: "Zapisz zmiany", color: "primary" } },
+      );
+      matched.push("ekran profilu z ustawieniami");
+    }
+
+    // --- Navigation / Menu ---
+    if (/nawigacj|menu|nav(bar)?|pasek|drawer|sidebar/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "navbar", label: "Nawigacja", props: { text: "Menu główne" } },
+        { id: nextId(), type: "tabs", label: "Zakładki", props: { text: "Start | Ulubione | Profil" } },
+      );
+      matched.push("nawigację z zakładkami");
+    }
+
+    // --- Search ---
+    if (/szukaj|wyszuk|search|filtr|filter/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "input", label: "Wyszukiwarka", props: { placeholder: "🔍 Szukaj...", type: "search" } },
+        { id: nextId(), type: "list", label: "Wyniki", props: { text: "Wyniki wyszukiwania" } },
+      );
+      matched.push("wyszukiwarkę z wynikami");
+    }
+
+    // --- Form / Contact ---
+    if (/formularz|form|kontakt|contact|wiadomo|message|wyślij/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Tytuł", props: { text: "Skontaktuj się", size: "20" } },
+        { id: nextId(), type: "input", label: "Imię", props: { placeholder: "Twoje imię", type: "text" } },
+        { id: nextId(), type: "input", label: "Email", props: { placeholder: "Twój email", type: "email" } },
+        { id: nextId(), type: "input", label: "Wiadomość", props: { placeholder: "Treść wiadomości...", type: "text" } },
+        { id: nextId(), type: "button", label: "Wyślij", props: { text: "Wyślij wiadomość", color: "primary" } },
+      );
+      matched.push("formularz kontaktowy");
+    }
+
+    // --- Chat ---
+    if (/chat|czat|rozmow|messenger|wiadomo/i.test(lower) && !matched.includes("formularz kontaktowy")) {
+      components.push(
+        { id: nextId(), type: "text", label: "Chat", props: { text: "Czat", size: "20" } },
+        { id: nextId(), type: "list", label: "Wiadomości", props: { text: "Lista wiadomości" } },
+        { id: nextId(), type: "input", label: "Wpisz wiadomość", props: { placeholder: "Napisz wiadomość..." } },
+        { id: nextId(), type: "button", label: "Wyślij", props: { text: "📤 Wyślij", color: "primary" } },
+      );
+      matched.push("interfejs czatu");
+    }
+
+    // --- Dashboard / Stats ---
+    if (/dashboard|panel|statystyk|stats|wykres|chart|analityk/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Dashboard", props: { text: "Panel główny", size: "22" } },
+        { id: nextId(), type: "card", label: "Statystyka 1", props: { text: "📊 Użytkownicy: 1,234" } },
+        { id: nextId(), type: "card", label: "Statystyka 2", props: { text: "📈 Przychody: 5,678 zł" } },
+        { id: nextId(), type: "card", label: "Statystyka 3", props: { text: "✅ Zadania: 89%" } },
+        { id: nextId(), type: "list", label: "Aktywność", props: { text: "Ostatnia aktywność" } },
+      );
+      matched.push("dashboard ze statystykami");
+    }
+
+    // --- Shopping / E-commerce ---
+    if (/sklep|shop|produkt|product|koszyk|cart|kup|buy|zamówien|order|e-?commerce/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Sklep", props: { text: "Sklep", size: "22" } },
+        { id: nextId(), type: "input", label: "Szukaj produktu", props: { placeholder: "🔍 Szukaj produktów...", type: "search" } },
+        { id: nextId(), type: "card", label: "Produkt 1", props: { text: "📦 Produkt A — 49,99 zł" } },
+        { id: nextId(), type: "card", label: "Produkt 2", props: { text: "📦 Produkt B — 29,99 zł" } },
+        { id: nextId(), type: "button", label: "Dodaj do koszyka", props: { text: "🛒 Dodaj do koszyka", color: "primary" } },
+      );
+      matched.push("ekran sklepu z produktami");
+    }
+
+    // --- Calendar / Events ---
+    if (/kalendarz|calendar|event|wydarzen|termin|spotkani|meeting/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Kalendarz", props: { text: "Kalendarz", size: "20" } },
+        { id: nextId(), type: "card", label: "Dzisiaj", props: { text: "📅 Dzisiaj — 3 wydarzenia" } },
+        { id: nextId(), type: "list", label: "Wydarzenia", props: { text: "Nadchodzące wydarzenia" } },
+        { id: nextId(), type: "button", label: "Dodaj wydarzenie", props: { text: "➕ Dodaj wydarzenie", color: "primary" } },
+      );
+      matched.push("kalendarz z wydarzeniami");
+    }
+
+    // --- Gallery / Photos ---
+    if (/galeri|gallery|zdjęci|photo|obraz|image|media/i.test(lower)) {
+      components.push(
+        { id: nextId(), type: "text", label: "Galeria", props: { text: "Galeria", size: "20" } },
+        { id: nextId(), type: "image", label: "Zdjęcie 1", props: { text: "🖼️ Zdjęcie 1" } },
+        { id: nextId(), type: "image", label: "Zdjęcie 2", props: { text: "🖼️ Zdjęcie 2" } },
+        { id: nextId(), type: "image", label: "Zdjęcie 3", props: { text: "🖼️ Zdjęcie 3" } },
+        { id: nextId(), type: "button", label: "Dodaj zdjęcie", props: { text: "📷 Dodaj zdjęcie", color: "primary" } },
+      );
+      matched.push("galerię zdjęć");
+    }
+
+    // --- Buttons (generic) ---
+    if (/przycisk|button|akcj/i.test(lower) && matched.length === 0) {
+      const btnTexts = lower.match(/(?:przycisk|button)\s+"([^"]+)"/gi);
+      if (btnTexts) {
+        btnTexts.forEach((m) => {
+          const label = m.replace(/^(przycisk|button)\s+"/i, "").replace(/"$/, "");
+          components.push({ id: nextId(), type: "button", label, props: { text: label, color: "primary" } });
+        });
+      } else {
+        components.push({ id: nextId(), type: "button", label: "Przycisk", props: { text: "Kliknij", color: "primary" } });
+      }
+      matched.push("przyciski");
+    }
+
+    // --- Fallback ---
+    if (components.length === 0) {
+      components.push(
+        { id: nextId(), type: "text", label: "Tytuł", props: { text: "Nowy ekran", size: "20" } },
+        { id: nextId(), type: "card", label: "Karta", props: { text: "Treść ekranu" } },
+        { id: nextId(), type: "button", label: "Akcja", props: { text: "Kontynuuj", color: "primary" } },
+      );
+      matched.push("podstawowy ekran");
+    }
+
+    const response = matched.length > 0
+      ? `✅ Rozpoznałem Twój opis i stworzyłem: **${matched.join(", ")}** (${components.length} komponentów).\n\nMogę rozbudować ten ekran — opisz co chcesz dodać lub zmienić!`
+      : `✅ Dodałem podstawowe komponenty. Opisz dokładniej czego potrzebujesz.`;
+
+    return { components, response };
+  };
+
   const simulateAIResponse = (userMessage: string) => {
     setIsTyping(true);
 
-    // Simulate AI generating components based on keywords
     setTimeout(() => {
-      const lower = userMessage.toLowerCase();
-      const newComponents: UIComponent[] = [];
-      let responseText = "";
+      const { components, response } = parseUserIntent(userMessage);
 
-      if (lower.includes("logowanie") || lower.includes("login")) {
-        newComponents.push(
-          { id: `ai-${Date.now()}-1`, type: "text", label: "Tytuł", props: { text: "Zaloguj się", size: "20" } },
-          { id: `ai-${Date.now()}-2`, type: "input", label: "Email", props: { placeholder: "Email", type: "email" } },
-          { id: `ai-${Date.now()}-3`, type: "input", label: "Hasło", props: { placeholder: "Hasło", type: "password" } },
-          { id: `ai-${Date.now()}-4`, type: "button", label: "Zaloguj", props: { text: "Zaloguj się", color: "primary" } },
-        );
-        responseText = "✅ Stworzyłem ekran logowania z polami email, hasło i przyciskiem logowania.";
-      } else if (lower.includes("lista") || lower.includes("zadań") || lower.includes("todo")) {
-        newComponents.push(
-          { id: `ai-${Date.now()}-1`, type: "text", label: "Tytuł", props: { text: "Moje Zadania", size: "20" } },
-          { id: `ai-${Date.now()}-2`, type: "input", label: "Nowe zadanie", props: { placeholder: "Dodaj nowe zadanie..." } },
-          { id: `ai-${Date.now()}-3`, type: "button", label: "Dodaj", props: { text: "Dodaj zadanie", color: "primary" } },
-          { id: `ai-${Date.now()}-4`, type: "list", label: "Zadania", props: { text: "Lista zadań" } },
-        );
-        responseText = "✅ Stworzyłem listę zadań z polem do dodawania i listą elementów.";
-      } else if (lower.includes("profil") || lower.includes("ustawienia")) {
-        newComponents.push(
-          { id: `ai-${Date.now()}-1`, type: "image", label: "Avatar", props: { text: "Avatar" } },
-          { id: `ai-${Date.now()}-2`, type: "text", label: "Nazwa", props: { text: "Jan Kowalski", size: "18" } },
-          { id: `ai-${Date.now()}-3`, type: "card", label: "Info", props: { text: "Informacje profilu" } },
-          { id: `ai-${Date.now()}-4`, type: "switch", label: "Powiadomienia", props: { text: "Powiadomienia" } },
-        );
-        responseText = "✅ Stworzyłem ekran profilu z avatarem, danymi i ustawieniami.";
-      } else {
-        newComponents.push(
-          { id: `ai-${Date.now()}-1`, type: "text", label: "Tytuł", props: { text: "Nowy ekran", size: "20" } },
-          { id: `ai-${Date.now()}-2`, type: "button", label: "Akcja", props: { text: "Kliknij", color: "primary" } },
-        );
-        responseText = `✅ Przeanalizowałem Twój opis i dodałem podstawowe komponenty. Opisz dokładniej co potrzebujesz, a rozbuduję ekran.`;
-      }
-
-      if (newComponents.length > 0) {
-        onGenerate(newComponents);
+      if (components.length > 0) {
+        onGenerate(components);
       }
 
       setMessages((prev) => [
         ...prev,
-        { id: `ai-${Date.now()}`, role: "assistant", content: responseText },
+        { id: `ai-${Date.now()}`, role: "assistant", content: response },
       ]);
       setIsTyping(false);
-    }, 1500);
+    }, 1200);
   };
 
   const handleSend = () => {
