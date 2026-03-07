@@ -1,0 +1,1 @@
+{\n  "name": "your-project-name",\n  "version": "1.0.0",\n  "description": "A project integrating Express, OpenAI, and Flutter",\n  "dependencies": {\n    "express": "^4.18.1",\n    "openai": "^3.2.0",\n    "flutter": "^3.3.0"\n  }\n}
