@@ -1,51 +1,44 @@
-name: Build and Release APK
+name: Build APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: 24
+
+      - name: Check node version
+        run: node -v
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
-      - name: Build web assets
+      - name: Build web
         run: npm run build
 
-      - name: Sync Capacitor Android
-        run: |
-          npx cap sync android
+      - name: Sync capacitor
+        run: npx cap sync android
 
-      - name: Prepare gradle.properties for signing
-        run: |
-          echo "MYAPP_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> android/gradle.properties
-          echo "MYAPP_KEY_ALIAS=$KEY_ALIAS" >> android/gradle.properties
-          echo "MYAPP_KEY_PASSWORD=$KEY_PASSWORD" >> android/gradle.properties
-
-      - name: Build Release APK
+      - name: Build APK
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleRelease
 
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: apk
           path: android/app/build/outputs/apk/release/app-release.apk
