@@ -1,0 +1,43 @@
+name: Build Release APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Web
+        run: npx vite build
+
+      - name: Add Android Platform
+        run: npx cap add android
+
+      - name: Prepare Gradle properties for signing
+        run: |
+          echo "RELEASE_STORE_FILE=keystore.jks" >> android/gradle.properties
+          echo "RELEASE_STORE_PASSWORD=${KEYSTORE_PASSWORD}" >> android/gradle.properties
+          echo "RELEASE_KEY_ALIAS=${KEY_ALIAS}" >> android/gradle.properties
+          echo "RELEASE_KEY_PASSWORD=${KEY_PASSWORD}" >> android/gradle.properties
+
+      - name: Build Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
